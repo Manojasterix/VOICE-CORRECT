@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>വാമൊഴി — സംസാരിക്കൂ, ശരിയാക്കട്ടെ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Malayalam:wght@400;600;700&family=Noto+Sans+Malayalam:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0F221D;
+    --panel: #16302A;
+    --panel-raised: #1D3A32;
+    --ink: #F3EFE4;
+    --ink-muted: #9FB6AC;
+    --amber: #E4A03B;
+    --amber-soft: rgba(228,160,59,0.18);
+    --sage: #6FA88E;
+    --line: rgba(243,239,228,0.10);
+    --radius-lg: 22px;
+    --radius-md: 14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: radial-gradient(ellipse at 50% -10%, #1A362E 0%, var(--bg) 55%);
+    color: var(--ink);
+    font-family: 'Noto Sans Malayalam', sans-serif;
+    min-height: 100vh;
+    display:flex;
+    justify-content:center;
+    padding: 28px 16px 60px;
+  }
+  .app{
+    width:100%;
+    max-width: 460px;
+  }
+  header{
+    text-align:center;
+    margin-bottom: 22px;
+  }
+  h1{
+    font-family:'Noto Serif Malayalam', serif;
+    font-weight:600;
+    font-size: 30px;
+    margin: 0 0 6px;
+    letter-spacing: 0.2px;
+  }
+  header p{
+    color: var(--ink-muted);
+    margin:0;
+    font-size: 14.5px;
+    line-height:1.5;
+  }
+
+  .lang-row{
+    display:flex;
+    gap:8px;
+    overflow-x:auto;
+    padding: 4px 2px 14px;
+    margin-bottom: 6px;
+    scrollbar-width:none;
+  }
+  .lang-row::-webkit-scrollbar{display:none;}
+  .lang-pill{
+    flex:0 0 auto;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--ink-muted);
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-family:'Noto Sans Malayalam', sans-serif;
+    cursor:pointer;
+    transition: all .15s ease;
+  }
+  .lang-pill.active{
+    background: var(--amber-soft);
+    border-color: var(--amber);
+    color: var(--amber);
+    font-weight:600;
+  }
+
+  .stage{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 36px 20px 28px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:16px;
+  }
+
+  .mic-wrap{
+    position:relative;
+    width: 120px;
+    height:120px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .ring{
+    position:absolute;
+    border-radius:50%;
+    border: 1.5px solid var(--amber);
+    opacity:0;
+  }
+  .stage.listening .ring{
+    animation: pulse 1.8s ease-out infinite;
+  }
+  .ring.r1{width:120px;height:120px;}
+  .ring.r2{width:120px;height:120px; animation-delay:.5s !important;}
+  .ring.r3{width:120px;height:120px; animation-delay:1s !important;}
+  @keyframes pulse{
+    0%{ width:70px; height:70px; opacity:.8; }
+    100%{ width:150px; height:150px; opacity:0; }
+  }
+
+  .mic-btn{
+    position:relative;
+    z-index:2;
+    width: 78px;
+    height:78px;
+    border-radius:50%;
+    border:none;
+    background: linear-gradient(160deg, #2A5348, #1D3A32);
+    color: var(--ink);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.35), inset 0 0 0 1px var(--line);
+    transition: transform .12s ease, background .2s ease;
+  }
+  .mic-btn:active{ transform: scale(0.95); }
+  .stage.listening .mic-btn{
+    background: linear-gradient(160deg, var(--amber), #C77F1F);
+    color: #1B1103;
+  }
+  .mic-btn:disabled{ opacity:.4; cursor:not-allowed; }
+
+  .bars{
+    display:flex;
+    align-items:center;
+    gap:3px;
+    height: 26px;
+  }
+  .bars span{
+    display:block;
+    width:3.5px;
+    border-radius:3px;
+    background: currentColor;
+    height: 8px;
+  }
+  .stage.listening .bars span{ animation: wave 1s ease-in-out infinite; }
+  .bars span:nth-child(1){animation-delay:0s;}
+  .bars span:nth-child(2){animation-delay:.1s;}
+  .bars span:nth-child(3){animation-delay:.2s;}
+  .bars span:nth-child(4){animation-delay:.3s;}
+  .bars span:nth-child(5){animation-delay:.4s;}
+  @keyframes wave{
+    0%,100%{ height:8px; }
+    50%{ height:24px; }
+  }
+
+  #statusText{
+    color: var(--ink-muted);
+    font-size:14.5px;
+    min-height: 20px;
+    text-align:center;
+  }
+  .stage.listening #statusText{ color: var(--amber); }
+
+  .panels{
+    margin-top: 16px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .panel{
+    background: var(--panel-raised);
+    border:1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+  }
+  .panel-label{
+    font-size:12.5px;
+    color: var(--ink-muted);
+    margin-bottom:6px;
+  }
+  .panel.corrected{
+    border-color: rgba(111,168,142,0.4);
+    background: rgba(111,168,142,0.08);
+  }
+  .panel.corrected .panel-label{ color: var(--sage); }
+  .panel p{
+    margin:0;
+    font-size:17px;
+    line-height:1.6;
+    word-break: break-word;
+  }
+  .panel-row{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .play-btn{
+    flex:0 0 auto;
+    background: var(--sage);
+    border:none;
+    color:#0F221D;
+    width:34px;
+    height:34px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+  }
+  .play-btn:hover{ filter: brightness(1.08); }
+
+  .history{
+    margin-top: 22px;
+  }
+  .history-title{
+    font-size:13px;
+    color: var(--ink-muted);
+    margin: 0 0 10px 4px;
+  }
+  .history-item{
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line);
+    font-size:14.5px;
+  }
+  .history-item .h-orig{
+    color: var(--ink-muted);
+    text-decoration: line-through;
+    text-decoration-color: rgba(159,182,172,0.4);
+    margin-bottom:3px;
+  }
+  .history-item .h-fixed{ color: var(--ink); }
+
+  .unsupported{
+    text-align:center;
+    color: var(--ink-muted);
+    font-size:14.5px;
+    padding: 18px;
+    border:1px dashed var(--line);
+    border-radius: var(--radius-md);
+    margin-top:16px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>വാമൊഴി</h1>
+    <p>സംസാരിക്കൂ — ടൈപ്പ് ചെയ്ത് തെറ്റുകൾ തിരുത്തി വായിച്ചു തരാം</p>
+  </header>
+
+  <div class="lang-row" id="langRow"></div>
+
+  <div class="stage" id="stage">
+    <div class="mic-wrap">
+      <div class="ring r1"></div>
+      <div class="ring r2"></div>
+      <div class="ring r3"></div>
+      <button class="mic-btn" id="micBtn" aria-label="സംസാരിക്കാൻ തുടങ്ങുക">
+        <svg id="micIcon" width="30" height="30" viewBox="0 0 24 24" fill="none">
+          <path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M19 11a7 7 0 0 1-14 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <div class="bars" id="micBars" style="display:none">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+      </button>
+    </div>
+    <p id="statusText">മൈക്ക് അമർത്തി സംസാരിക്കൂ</p>
+  </div>
+
+  <div class="panels" id="panels" hidden>
+    <div class="panel original">
+      <div class="panel-label">പറഞ്ഞത്</div>
+      <p id="originalText"></p>
+    </div>
+    <div class="panel corrected">
+      <div class="panel-label">ശരിയായ രൂപം</div>
+      <div class="panel-row">
+        <p id="correctedText">...</p>
+        <button class="play-btn" id="playBtn" aria-label="വീണ്ടും കേൾക്കുക">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M4 9v6h4l5 5V4L8 9H4Z" fill="currentColor"/>
+            <path d="M16.5 8.5a5 5 0 0 1 0 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="history" id="historyWrap" hidden>
+    <p class="history-title">മുമ്പ് പറഞ്ഞവ</p>
+    <div id="historyList"></div>
+  </div>
+
+  <div class="unsupported" id="unsupported" hidden>
+    ഈ ബ്രൗസറിൽ ശബ്ദം തിരിച്ചറിയാനുള്ള സൗകര്യം ലഭ്യമല്ല. ദയവായി Chrome ബ്രൗസർ ഉപയോഗിക്കുക.
+  </div>
+</div>
+
+<script>
+const LANGS = [
+  { code: 'ml-IN', label: 'മലയാളം', name: 'Malayalam' },
+  { code: 'en-IN', label: 'English', name: 'English' },
+  { code: 'hi-IN', label: 'हिन्दी', name: 'Hindi' },
+  { code: 'te-IN', label: 'తెలుగు', name: 'Telugu' },
+  { code: 'ta-IN', label: 'தமிழ்', name: 'Tamil' },
+  { code: 'kn-IN', label: 'ಕನ್ನಡ', name: 'Kannada' },
+];
+
+let currentLang = LANGS[0];
+let history = [];
+
+const langRow = document.getElementById('langRow');
+const stage = document.getElementById('stage');
+const micBtn = document.getElementById('micBtn');
+const micIcon = document.getElementById('micIcon');
+const micBars = document.getElementById('micBars');
+const statusText = document.getElementById('statusText');
+const panels = document.getElementById('panels');
+const originalText = document.getElementById('originalText');
+const correctedText = document.getElementById('correctedText');
+const playBtn = document.getElementById('playBtn');
+const unsupported = document.getElementById('unsupported');
+const historyWrap = document.getElementById('historyWrap');
+const historyList = document.getElementById('historyList');
+
+function renderLangs(){
+  langRow.innerHTML = '';
+  LANGS.forEach(l => {
+    const pill = document.createElement('button');
+    pill.className = 'lang-pill' + (l.code === currentLang.code ? ' active' : '');
+    pill.textContent = l.label;
+    pill.onclick = () => {
+      currentLang = l;
+      renderLangs();
+      if (recognition) recognition.lang = currentLang.code;
+    };
+    langRow.appendChild(pill);
+  });
+}
+renderLangs();
+
+const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+let isListening = false;
+
+if (!SpeechRecognitionCtor) {
+  unsupported.hidden = false;
+  micBtn.disabled = true;
+  statusText.textContent = 'ലഭ്യമല്ല';
+} else {
+  recognition = new SpeechRecognitionCtor();
+  recognition.lang = currentLang.code;
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = () => {
+    isListening = true;
+    stage.classList.add('listening');
+    micIcon.style.display = 'none';
+    micBars.style.display = 'flex';
+    statusText.textContent = 'കേൾക്കുന്നു...';
+  };
+
+  recognition.onerror = (e) => {
+    isListening = false;
+    stage.classList.remove('listening');
+    micIcon.style.display = 'block';
+    micBars.style.display = 'none';
+    statusText.textContent = e.error === 'no-speech'
+      ? 'ഒന്നും കേട്ടില്ല, വീണ്ടും ശ്രമിക്കൂ'
+      : 'എന്തോ കുഴപ്പം, വീണ്ടും ശ്രമിക്കൂ';
+  };
+
+  recognition.onend = () => {
+    isListening = false;
+    stage.classList.remove('listening');
+    micIcon.style.display = 'block';
+    micBars.style.display = 'none';
+  };
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript.trim();
+    if (transcript) {
+      handleTranscript(transcript);
+    } else {
+      statusText.textContent = 'ഒന്നും കേട്ടില്ല, വീണ്ടും ശ്രമിക്കൂ';
+    }
+  };
+}
+
+micBtn.addEventListener('click', () => {
+  if (!recognition) return;
+  if (isListening) {
+    recognition.stop();
+  } else {
+    panels.hidden = true;
+    try { recognition.start(); } catch(e) {}
+  }
+});
+
+async function handleTranscript(text){
+  panels.hidden = false;
+  originalText.textContent = text;
+  correctedText.textContent = '...';
+  statusText.textContent = 'ശരിയാക്കുന്നു...';
+
+  try {
+    const fixed = await correctText(text, currentLang.name);
+    correctedText.textContent = fixed;
+    statusText.textContent = 'തയ്യാറായി';
+    addToHistory(text, fixed);
+    speakText(fixed, currentLang.code);
+  } catch (err) {
+    correctedText.textContent = text;
+    statusText.textContent = 'തിരുത്താൻ കഴിഞ്ഞില്ല, മൂലരൂപം കാണിക്കുന്നു';
+    speakText(text, currentLang.code);
+  }
+}
+
+async function correctText(text, languageName){
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1000,
+      system: `You are a careful proofreader for ${languageName}. Correct only spelling, grammar, and punctuation mistakes in the text the user gives you. Preserve the original meaning, tone, and language exactly - do not translate. Return ONLY the corrected text, with no explanation, no quotes, and no markdown.`,
+      messages: [{ role: "user", content: text }]
+    })
+  });
+  const data = await response.json();
+  const textBlocks = (data.content || []).filter(b => b.type === 'text').map(b => b.text);
+  const result = textBlocks.join(' ').trim();
+  if (!result) throw new Error('empty');
+  return result;
+}
+
+function speakText(text, langCode){
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = langCode;
+  const voices = window.speechSynthesis.getVoices();
+  const prefix = langCode.split('-')[0];
+  const match = voices.find(v => v.lang && v.lang.toLowerCase().startsWith(prefix));
+  if (match) utter.voice = match;
+  window.speechSynthesis.speak(utter);
+}
+
+playBtn.addEventListener('click', () => {
+  speakText(correctedText.textContent, currentLang.code);
+});
+
+function addToHistory(orig, fixed){
+  history.unshift({ orig, fixed });
+  history = history.slice(0, 6);
+  historyWrap.hidden = history.length === 0;
+  historyList.innerHTML = '';
+  history.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'history-item';
+    div.innerHTML = `<div class="h-orig">${escapeHtml(item.orig)}</div><div class="h-fixed">${escapeHtml(item.fixed)}</div>`;
+    historyList.appendChild(div);
+  });
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.onvoiceschanged = () => {};
+}
+</script>
+</body>
+</html>
